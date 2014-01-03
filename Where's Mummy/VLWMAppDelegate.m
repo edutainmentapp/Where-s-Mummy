@@ -7,12 +7,25 @@
 //
 
 #import "VLWMAppDelegate.h"
-
+#import "SSZipArchive.h"
+#import "VLWMPackageData.h"
+#include <AudioToolbox/AudioToolbox.h>
+#import <AVFoundation/AVAudioPlayer.h>
+#import <AVFoundation/AVAudioSession.h>
 @implementation VLWMAppDelegate
-
+static BOOL mbMusicIsOn;
+static BOOL mbMusicIsPlaying;
+static NSMutableArray * mainSongs;
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+    NSLog(@"App Status: %d",[VLWMPackageData appStatus]);
+    if(![VLWMPackageData gameLoaded])
+        [self unpackDefaultGame];
     // Override point for customization after application launch.
+    NSString * path = [[NSBundle mainBundle]pathForResource:@"gs01" ofType:@"aac"];
+    NSString * path2 = [[NSBundle mainBundle]pathForResource:@"gs02" ofType:@"aac"];
+    mainSongs = [NSMutableArray arrayWithObjects:path,path2, nil];
+    mbMusicIsPlaying = NO;
     return YES;
 }
 							
@@ -42,5 +55,90 @@
 {
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 }
-
+-(void)unpackDefaultGame
+{
+    NSString *privateDir = [self getPrivateDocsDir];
+    //    //If your zip is in document directory than use this code
+    //    NSString *zipPath = [documentsDirectory stringByAppendingPathComponent:@"mediadata.zip"];
+    //else if zip file is in bundle than use this code
+    NSString *zipPath = [[NSBundle mainBundle] pathForResource:@"DefaultPackage" ofType:@"zip"];
+    
+    if( [SSZipArchive unzipFileAtPath:zipPath toDestination:privateDir] != NO )
+    {
+        [VLWMPackageData gameIsLoaded];
+        NSLog(@"Default games loaded to this iPhone");
+    }else{
+        NSLog(@"Unable to unzip game package");
+    }
+}
+- (NSString *)getPrivateDocsDir {
+    
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES);
+    NSString *documentsDirectory = [paths objectAtIndex:0];
+    documentsDirectory = [documentsDirectory stringByAppendingPathComponent:@"Private Documents"];
+    
+    NSError *error;
+    [[NSFileManager defaultManager] createDirectoryAtPath:documentsDirectory withIntermediateDirectories:YES attributes:nil error:&error];
+    
+    return documentsDirectory;
+    
+}
+- (void)playMusic
+{
+    if(mbMusicIsOn&&!mbMusicIsPlaying)
+    {
+    NSUInteger randomIndex = arc4random() % [mainSongs count];
+    NSURL *url = [NSURL fileURLWithPath:[mainSongs objectAtIndex:randomIndex]];
+    _audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:url error:nil];
+    _audioPlayer.delegate = self;
+    [_audioPlayer prepareToPlay];
+    [_audioPlayer play];
+    mbMusicIsPlaying = YES;
+    }
+}
+-(void)stopMusic
+{
+    [_audioPlayer stop];
+    _audioPlayer = nil;
+}
+-(BOOL)musicIsPlaying
+{
+    return mbMusicIsPlaying;
+}
+-(BOOL)musicIsOn
+{
+    return mbMusicIsOn;
+}
+-(void)switchMusicOnOff
+{
+    if(mbMusicIsOn)
+        [self musicOff];
+    else
+        [self musicOn];
+}
+-(void)musicOn
+{
+    mbMusicIsOn = YES;
+    [self playMusic];
+    
+}
+-(void)musicOff
+{
+    mbMusicIsOn = NO;
+    mbMusicIsPlaying = NO;
+    [self stopMusic];
+}
+- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag
+{
+    mbMusicIsPlaying = NO;
+    [self playMusic];
+}
+- (BOOL) fileExists:(NSString *)fileName
+{
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    return [fileManager fileExistsAtPath:fileName];
+}
+//- (NSUInteger)application:(UIApplication *)application supportedInterfaceOrientationsForWindow:(UIWindow *)window{
+//    return UIInterfaceOrientationMaskAll;
+//}
 @end

@@ -7,7 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
-
 @interface VLWMViewController : UIViewController
-
++(int) miNoOfColum;
++(int) miNoOfRow;
 @end

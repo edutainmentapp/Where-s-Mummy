@@ -7,9 +7,13 @@
 //
 
 #import <UIKit/UIKit.h>
-
+#import <AVFoundation/AVAudioPlayer.h>
 @interface VLWMAppDelegate : UIResponder <UIApplicationDelegate>
-
 @property (strong, nonatomic) UIWindow *window;
-
+@property (strong, nonatomic) AVAudioPlayer * audioPlayer;
+-(void)musicOn;
+-(void)switchMusicOnOff;
+-(void)playMusic;
+-(void)stopMusic;
+-(BOOL)fileExists:(NSString *)fileName;
 @end
